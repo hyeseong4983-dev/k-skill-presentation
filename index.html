@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K-Skill : 한국인을 위한 AI 에이전트 생태계</title>
+  
+  <!-- Fonts: Google Fonts (Inter + Pretendard/Noto Sans KR) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  
+  <!-- Anime.js for High-end Interactive Animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0a0f1d;
+      --bg-card: rgba(17, 24, 39, 0.75);
+      --bg-card-border: rgba(255, 255, 255, 0.1);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      
+      /* Google Brand & Flow Accents */
+      --g-blue: #4285F4;
+      --g-red: #EA4335;
+      --g-yellow: #FBBC05;
+      --g-green: #34A853;
+      --g-cyan: #00e5ff;
+      --g-purple: #a855f7;
+      
+      --glow-blue: rgba(66, 133, 244, 0.4);
+      --glow-green: rgba(52, 168, 83, 0.4);
+      --glow-cyan: rgba(0, 229, 255, 0.4);
+      
+      --font-sans: 'Inter', 'Noto Sans KR', -apple-system, sans-serif;
+      --font-mono: 'Fira Code', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* Ambient Background Mesh */
+    .ambient-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      background: 
+        radial-gradient(circle at 15% 20%, rgba(66, 133, 244, 0.15), transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.15), transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(52, 168, 83, 0.08), transparent 60%);
+    }
+
+    /* Canvas for Manim-like Particle & Math Flow */
+    #particle-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Deck Layout */
+    .deck-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+    }
+
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 3.5rem 5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(0.96) translateY(20px);
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.5s;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: scale(1) translateY(0);
+    }
+
+    /* Header & Navigation Bar */
+    .top-bar {
+      position: absolute;
+      top: 1.5rem;
+      left: 5rem;
+      right: 5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--bg-card-border);
+      padding: 0.4rem 1rem;
+      border-radius: 9999px;
+      backdrop-filter: blur(12px);
+    }
+
+    .logo-badge .google-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .google-dots span {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .google-dots span:nth-child(1) { background: var(--g-blue); }
+    .google-dots span:nth-child(2) { background: var(--g-red); }
+    .google-dots span:nth-child(3) { background: var(--g-yellow); }
+    .google-dots span:nth-child(4) { background: var(--g-green); }
+
+    .logo-badge span.text {
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #e2e8f0;
+    }
+
+    .slide-counter {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.4);
+      padding: 0.3rem 0.8rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Bottom Navigation Controls */
+    .controls-bar {
+      position: absolute;
+      bottom: 2rem;
+      left: 5rem;
+      right: 5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      margin-right: 2rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--g-blue), var(--g-green), var(--g-cyan));
+      box-shadow: 0 0 12px var(--glow-cyan);
+      transition: width 0.4s ease;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 0.6rem;
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: all 0.2s;
+      backdrop-filter: blur(8px);
+    }
+
+    .nav-btn:hover {
+      background: rgba(66, 133, 244, 0.3);
+      border-color: var(--g-blue);
+      transform: translateY(-2px);
+    }
+
+    /* Slide Typography & Shared Elements */
+    .slide-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 1rem;
+      width: fit-content;
+    }
+
+    .badge-blue { background: rgba(66, 133, 244, 0.2); color: #8ab4f8; border: 1px solid rgba(66, 133, 244, 0.4); }
+    .badge-green { background: rgba(52, 168, 83, 0.2); color: #81c995; border: 1px solid rgba(52, 168, 83, 0.4); }
+    .badge-yellow { background: rgba(251, 188, 5, 0.2); color: #fdd663; border: 1px solid rgba(251, 188, 5, 0.4); }
+    .badge-purple { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.4); }
+
+    .slide-title {
+      font-size: 2.8rem;
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 0.8rem;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .slide-subtitle {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      font-weight: 400;
+      max-width: 900px;
+      line-height: 1.6;
+    }
+
+    /* Glass Cards Grid */
+    .card-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      width: 100%;
+      align-items: stretch;
+    }
+
+    .card-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      width: 100%;
+    }
+
+    .card-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem;
+      width: 100%;
+    }
+
+    .glass-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(66, 133, 244, 0.5);
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    }
+
+    /* SLIDE 1: Hero Banner Specifics */
+    .hero-layout {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 3rem;
+      align-items: center;
+      height: 100%;
+    }
+
+    .hero-image-wrap {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(66, 133, 244, 0.3);
+    }
+
+    .hero-image-wrap img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.8s ease;
+    }
+
+    .hero-image-wrap:hover img {
+      transform: scale(1.03);
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2.2rem;
+      font-weight: 900;
+      font-family: var(--font-mono);
+      background: linear-gradient(135deg, var(--g-cyan), var(--g-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.2rem;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    /* SLIDE 3: Google Flow Interactive Diagram */
+    .google-flow-container {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(66, 133, 244, 0.3);
+      border-radius: 20px;
+      padding: 2.5rem;
+      position: relative;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.5);
+    }
+
+    .flow-pipeline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      gap: 1.5rem;
+    }
+
+    .flow-node {
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 14px;
+      padding: 1.5rem;
+      width: 200px;
+      text-align: center;
+      position: relative;
+      z-index: 5;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .flow-node:hover, .flow-node.active-node {
+      border-color: var(--g-blue);
+      transform: translateY(-6px);
+      box-shadow: 0 12px 25px rgba(66, 133, 244, 0.35);
+    }
+
+    .flow-node.active-node {
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+    }
+
+    .flow-node .node-icon {
+      font-size: 2rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .flow-node .node-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.3rem;
+    }
+
+    .flow-node .node-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Animated Flow Connector Arrow */
+    .flow-connector {
+      flex: 1;
+      height: 4px;
+      background: #334155;
+      position: relative;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .flow-pulse {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 40px;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--g-cyan), transparent);
+      animation: pulseMove 2s infinite linear;
+    }
+
+    @keyframes pulseMove {
+      0% { transform: translateX(-40px); }
+      100% { transform: translateX(250px); }
+    }
+
+    /* Interactive Output Window for Flow */
+    .flow-terminal {
+      margin-top: 2rem;
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 1.2rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: #38bdf8;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+
+    /* SLIDE 4: Core Crawled Skills Case Studies */
+    .skill-card {
+      background: rgba(17, 24, 39, 0.8);
+      border-radius: 14px;
+      padding: 1.5rem;
+      border-left: 4px solid var(--g-blue);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .skill-card.naver { border-left-color: var(--g-green); }
+    .skill-card.court { border-left-color: var(--g-yellow); }
+    .skill-card.geek { border-left-color: var(--g-red); }
+    .skill-card.macro { border-left-color: var(--g-purple); }
+
+    .skill-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .skill-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .skill-tag {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      font-family: var(--font-mono);
+      color: #cbd5e1;
+    }
+
+    .code-preview {
+      background: #090d16;
+      border-radius: 8px;
+      padding: 0.8rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: #a5f3fc;
+      margin-top: 1rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* SLIDE 5: Matplotlib Visualizations */
+    .chart-box {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      background: #0f172a;
+    }
+
+    .chart-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* SLIDE 6: Manim-Style Algorithmic Stroke Animation */
+    .manim-stage {
+      background: #090d16;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 20px;
+      padding: 2.5rem;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 380px;
+    }
+
+    .manim-svg {
+      width: 100%;
+      max-width: 900px;
+      height: 160px;
+    }
+
+    .manim-path {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      transition: stroke-dashoffset 2s ease;
+    }
+
+    .math-formula {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 0.8rem 1.5rem;
+      border-radius: 10px;
+      margin-top: 2rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    /* Keyboard Shortcuts Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(12px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 16px;
+      padding: 2.5rem;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .key-badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      background: #1f2937;
+      border: 1px solid #4b5563;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: #f3f4f6;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Canvas for Manim-style Particles -->
+  <div class="ambient-bg"></div>
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="logo-badge">
+      <div class="google-dots">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <span class="text">K-SKILL ECOSYSTEM</span>
+    </div>
+    <div class="slide-counter" id="slide-indicator">01 / 07</div>
+  </div>
+
+  <!-- Deck Container -->
+  <div class="deck-container">
+
+    <!-- ================= SLIDE 1: HERO & TITLE ================= -->
+    <div class="slide active" data-slide="1">
+      <div class="hero-layout">
+        <div>
+          <div class="slide-badge badge-blue">KOREAN AI AGENT REVOLUTION</div>
+          <h1 class="slide-title">에이전트를 한국인으로 :<br><span style="color: #38bdf8;">K-Skill</span> 생태계 분석</h1>
+          <p class="slide-subtitle">
+            글로벌 LLM 에이전트(Claude, GPT, Gemini)가 넘지 못했던 한국 도메인 데이터의 벽을 허물고,
+            공공데이터·포털·금융·법률 지능을 부여하는 오픈소스 표준 스킬 컬렉션
+          </p>
+          <div class="stats-row">
+            <div class="stat-box">
+              <div class="stat-number" data-target="122">0</div>
+              <div class="stat-label">등록 스킬 수</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number" data-target="7700">0</div>
+              <div class="stat-label">GitHub Stars</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number" data-target="1142">0</div>
+              <div class="stat-label">누적 Commits</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number" data-target="96">0</div>
+              <div class="stat-label">태스크 완결율 (%)</div>
+            </div>
+          </div>
+        </div>
+        <div class="hero-image-wrap">
+          <img src="assets/hero_banner.jpg" alt="K-Skill Hero Banner">
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 2: PROBLEM DEFINITION ================= -->
+    <div class="slide" data-slide="2">
+      <div class="slide-badge badge-yellow">CHALLENGES & MOTIVATION</div>
+      <h2 class="slide-title">글로벌 에이전트의 "한국형 장벽"</h2>
+      <p class="slide-subtitle">
+        세계 최고 성능의 AI 코딩 에이전트도 한국 로컬 환경에서는 극심한 할루시네이션과 정보 수집 실패를 겪습니다.
+      </p>
+      
+      <div class="card-grid-3">
+        <div class="glass-card">
+          <div style="font-size: 2.2rem; margin-bottom: 0.8rem;">🔒</div>
+          <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: #f87171;">폐쇄형 포털 & 동적 렌더링</h3>
+          <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+            네이버 블로그, 카페, 뉴스 등 국내 트래픽 80% 이상의 플랫폼이 iFrame, 동적 JS 또는 검색 차단 정책으로 보호되어 일반 웹스크래핑 에이전트 접근 불가
+          </p>
+        </div>
+
+        <div class="glass-card">
+          <div style="font-size: 2.2rem; margin-bottom: 0.8rem;">🏛️</div>
+          <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: #fbbf24;">공공행정·법률망 레거시</h3>
+          <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+            대법원 법원경매(PGJ141M00 XML), 건축물대장, 정부24 등 복잡한 XML 파라미터와 접근성 트리 부재로 기존 LLM이 구조를 파악하지 못함 (Issue #167)
+          </p>
+        </div>
+
+        <div class="glass-card">
+          <div style="font-size: 2.2rem; margin-bottom: 0.8rem;">🧩</div>
+          <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: #a78bfa;">에이전트 규격 파편화</h3>
+          <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+            Claude Code, Cursor, Windsurf, OpenAgent 등 에이전트마다 도구 호출 규격이 달라 동일한 한국형 데이터도 중복 개발해야 하는 생산성 낭비
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 3: GOOGLE FLOW ARCHITECTURE ================= -->
+    <div class="slide" data-slide="3">
+      <div class="slide-badge badge-green">GOOGLE FLOW ARCHITECTURE</div>
+      <h2 class="slide-title">Google Flow 파이프라인 : 인텔리전트 에이전트 코어</h2>
+      <p class="slide-subtitle">
+        단일 명령으로 호출되는 통합 CLI 어댑터와 자율 오케스트레이션 엔진의 동작 메커니즘
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1.35fr; gap: 2rem; align-items: center;">
+        <div style="border-radius: 16px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
+          <img src="assets/agent_flow.jpg" alt="Google Flow Architecture" style="width: 100%; height: auto; display: block;">
+        </div>
+
+        <div class="google-flow-container" style="padding: 1.5rem;">
+          <div class="flow-pipeline" style="gap: 0.8rem;">
+            <div class="flow-node active-node" style="padding: 1rem; width: 140px;" onclick="selectFlowNode('agent')">
+              <div class="node-icon" style="font-size: 1.5rem; margin-bottom: 0.3rem;">🤖</div>
+              <div class="node-title" style="font-size: 0.85rem;">Agent Core</div>
+              <div class="node-desc" style="font-size: 0.7rem;">Claude / Cursor</div>
+            </div>
+
+            <div class="flow-connector"><div class="flow-pulse"></div></div>
+
+            <div class="flow-node" style="padding: 1rem; width: 140px;" onclick="selectFlowNode('router')">
+              <div class="node-icon" style="font-size: 1.5rem; margin-bottom: 0.3rem;">⚡</div>
+              <div class="node-title" style="font-size: 0.85rem;">K-Skill CLI</div>
+              <div class="node-desc" style="font-size: 0.7rem;">@nomadamas</div>
+            </div>
+
+            <div class="flow-connector"><div class="flow-pulse"></div></div>
+
+            <div class="flow-node" style="padding: 1rem; width: 140px;" onclick="selectFlowNode('cluster')">
+              <div class="node-icon" style="font-size: 1.5rem; margin-bottom: 0.3rem;">🌐</div>
+              <div class="node-title" style="font-size: 0.85rem;">실행 클러스터</div>
+              <div class="node-desc" style="font-size: 0.7rem;">네이버·법원·한은</div>
+            </div>
+
+            <div class="flow-connector"><div class="flow-pulse"></div></div>
+
+            <div class="flow-node" style="padding: 1rem; width: 140px;" onclick="selectFlowNode('output')">
+              <div class="node-icon" style="font-size: 1.5rem; margin-bottom: 0.3rem;">✨</div>
+              <div class="node-title" style="font-size: 0.85rem;">정규화 JSON</div>
+              <div class="node-desc" style="font-size: 0.7rem;">컨텍스트 주입</div>
+            </div>
+          </div>
+
+          <div class="flow-terminal" id="flow-terminal-content" style="margin-top: 1.2rem; font-size: 0.8rem; padding: 1rem;">
+            // 💡 상단 노드를 클릭하면 각 단계별 실제 실행 로그와 I/O 데이터를 확인할 수 있습니다.<br>
+            [Agent Dispatch] User Query: "수원지방법원 다음 주 아파트 경매 공고 요약해줘"<br>
+            &gt; Routing via K-Skill CLI: court-auction-notice-search
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 4: CORE SKILLS DEEP DIVE (CRAWLED DATA) ================= -->
+    <div class="slide" data-slide="4">
+      <div class="slide-badge badge-purple">DEEP DIVE: CRAWLED REAL-WORLD SKILLS</div>
+      <h2 class="slide-title">실제 수집 데이터 기반 핵심 스킬 분석</h2>
+      <p class="slide-subtitle">
+        Firecrawl로 수집된 K-Skill 리포지토리의 대표 모듈별 아키텍처 및 구현 방식
+      </p>
+
+      <div class="card-grid-4">
+        <!-- 1. Naver News Search -->
+        <div class="glass-card skill-card naver">
+          <div>
+            <div class="skill-header">
+              <span class="skill-name">네이버 뉴스 검색</span>
+              <span class="skill-tag">naver-news-search</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              포털 실시간 속보 수집. 카테고리 필터링 및 본문 클러스터링으로 중복 기사 제거 후 핵심 요약 추출.
+            </p>
+          </div>
+          <div class="code-preview">
+npx @nomadamas/k-skill \
+  naver-news-search \
+  --query="금리인하" --limit=5
+          </div>
+        </div>
+
+        <!-- 2. GeekNews Search -->
+        <div class="glass-card skill-card geek">
+          <div>
+            <div class="skill-header">
+              <span class="skill-name">긱뉴스 테크 트렌드</span>
+              <span class="skill-tag">geeknews-search</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              국내 개발자 생태계 실시간 기술 아티클 및 토론 데이터 수집. 최신 오픈소스 트렌드 파악.
+            </p>
+          </div>
+          <div class="code-preview">
+npx @nomadamas/k-skill \
+  geeknews-search \
+  --filter="trending"
+          </div>
+        </div>
+
+        <!-- 3. Court Auction Issue #167 -->
+        <div class="glass-card skill-card court">
+          <div>
+            <div class="skill-header">
+              <span class="skill-name">대법원 법원경매 (Issue #167)</span>
+              <span class="skill-tag">court-auction</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              Playwright 기반 Headless Chromium으로 PGJ141M00 화면 파싱. 사건번호·용도·감정가 정규화.
+            </p>
+          </div>
+          <div class="code-preview">
+{
+  "court": "수원지법",
+  "case": "2026타경1042",
+  "appraisal": 450000000
+}
+          </div>
+        </div>
+
+        <!-- 4. Macro & Real Estate -->
+        <div class="glass-card skill-card macro">
+          <div>
+            <div class="skill-header">
+              <span class="skill-name">한국은행 ECOS & 건축대장</span>
+              <span class="skill-tag">bok-ecos / building</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              한국은행 공식 거시경제 지표 및 국토교통부 건축물대장 공공데이터 연계 분석.
+            </p>
+          </div>
+          <div class="code-preview">
+npx @nomadamas/k-skill \
+  bok-ecos-stats \
+  --code="722Y001"
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 5: VISUAL DATA & BENCHMARKS ================= -->
+    <div class="slide" data-slide="5">
+      <div class="slide-badge badge-blue">QUANTITATIVE VISUALIZATIONS</div>
+      <h2 class="slide-title">정량적 성과 & 생태계 분포 (Matplotlib)</h2>
+      <p class="slide-subtitle">
+        122+ 스킬의 영역별 구성비와 글로벌 기본 에이전트 대비 한국 도메인 완결율 비교
+      </p>
+
+      <div class="card-grid-2">
+        <div class="chart-box">
+          <img src="assets/chart_categories.png" alt="K-Skill Category Distribution">
+        </div>
+        <div class="chart-box">
+          <img src="assets/chart_benchmark.png" alt="K-Skill Benchmark Comparison">
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 6: MANIM-STYLE ALGORITHMIC PIPELINE ================= -->
+    <div class="slide" data-slide="6">
+      <div class="slide-badge badge-green">ALGORITHMIC EXECUTION PIPELINE</div>
+      <h2 class="slide-title">Manim 스타일 : 상태 전이 & 수식적 모델링</h2>
+      <p class="slide-subtitle">
+        에이전트 인텐트에서 결정론적 데이터 반환까지의 벡터 경로 렌더링
+      </p>
+
+      <div class="manim-stage">
+        <!-- Animated SVG stroke imitating Manim vector line drawing -->
+        <svg class="manim-svg" viewBox="0 0 900 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path id="manim-path-1" class="manim-path" d="M 50 80 Q 250 10 450 80 T 850 80" stroke="#00e5ff" stroke-width="4" stroke-linecap="round" />
+          <circle cx="50" cy="80" r="10" fill="#4285F4" />
+          <circle cx="250" cy="45" r="10" fill="#FBBC05" />
+          <circle cx="450" cy="80" r="10" fill="#34A853" />
+          <circle cx="650" cy="115" r="10" fill="#EA4335" />
+          <circle cx="850" cy="80" r="10" fill="#a855f7" />
+
+          <!-- Node Labels -->
+          <text x="50" y="125" fill="#94a3b8" font-size="12" text-anchor="middle" font-family="'Fira Code', monospace">User Query</text>
+          <text x="250" y="25" fill="#fdd663" font-size="12" text-anchor="middle" font-family="'Fira Code', monospace">Intent Parser</text>
+          <text x="450" y="125" fill="#81c995" font-size="12" text-anchor="middle" font-family="'Fira Code', monospace">K-Skill Adapter</text>
+          <text x="650" y="150" fill="#f87171" font-size="12" text-anchor="middle" font-family="'Fira Code', monospace">Headless Exec</text>
+          <text x="850" y="125" fill="#c084fc" font-size="12" text-anchor="middle" font-family="'Fira Code', monospace">Verified JSON</text>
+        </svg>
+
+        <div class="math-formula">
+          <span>&forall; q &isin; Q<sub>kr</sub> : &Phi;(q) = &Lambda; &compfn; &Psi;<sub>k-skill</sub>(q) &rarr; Accuracy(&Phi;) &ge; 0.95</span>
+          <span style="color: #94a3b8; font-size: 0.85rem;">| &Delta; Latency &le; 180ms</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE 7: DEPLOYMENT & FUTURE ================= -->
+    <div class="slide" data-slide="7">
+      <div class="slide-badge badge-yellow">ECOSYSTEM ROADMAP & DEPLOYMENT</div>
+      <h2 class="slide-title">지속 가능한 발전 & 원클릭 배포</h2>
+      <p class="slide-subtitle">
+        단 한 줄의 업데이트 명령으로 최신 한국형 지능을 에이전트에 동기화
+      </p>
+
+      <div class="card-grid-2">
+        <div class="glass-card">
+          <h3 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; color: #38bdf8;">🚀 단일 명령 업데이트</h3>
+          <div class="code-preview" style="font-size: 0.95rem; padding: 1.2rem; margin-bottom: 1.2rem;">
+npx -y @nomadamas/k-skill@0 update
+          </div>
+          <ul style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.8; padding-left: 1.2rem;">
+            <li>Claude Code, Cursor, Windsurf, Vercel Agent Skills 자동 감지</li>
+            <li>로컬에 설치된 122개 스킬 번들을 최신 커밋 상태로 자동 동기화</li>
+            <li>Zero-config CLI 어댑터 아키텍처</li>
+          </ul>
+        </div>
+
+        <div class="glass-card">
+          <h3 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; color: #4ade80;">🔮 차세대 로드맵</h3>
+          <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
+            <div style="background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 0.8rem; border-left: 3px solid var(--g-blue);">
+              <strong style="color: #fff;">1. 공공 마이데이터 & 금융결제원 연동</strong>
+              <p style="font-size: 0.85rem; color: var(--text-muted);">에이전트가 직접 본인인증 및 계좌 잔액·이체 지능을 안전하게 실행</p>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 0.8rem; border-left: 3px solid var(--g-green);">
+              <strong style="color: #fff;">2. K-Skill Hub 오픈 마켓플레이스</strong>
+              <p style="font-size: 0.85rem; color: var(--text-muted);">국내 개발자가 스킬을 등록하고 검증받는 커뮤니티 거버넌스</p>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 0.8rem; border-left: 3px solid var(--g-purple);">
+              <strong style="color: #fff;">3. Autonomous Desktop Computer Use</strong>
+              <p style="font-size: 0.85rem; color: var(--text-muted);">난공불락 공공망 웹사이트를 스크린샷과 시각 모델로 자율 돌파</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <div class="controls-bar">
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div class="nav-buttons">
+      <button class="nav-btn" onclick="prevSlide()" title="이전 슬라이드 (←)">&#8592;</button>
+      <button class="nav-btn" onclick="nextSlide()" title="다음 슬라이드 (→)">&#8594;</button>
+      <button class="nav-btn" onclick="toggleFullscreen()" title="전체화면 (F)">&#x26F6;</button>
+      <button class="nav-btn" onclick="toggleHelpModal()" title="단축키 안내 (?)">?</button>
+    </div>
+  </div>
+
+  <!-- Shortcuts Modal -->
+  <div class="modal-overlay" id="help-modal" onclick="toggleHelpModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <h3 style="color: #fff; margin-bottom: 1.5rem; font-size: 1.3rem;">키보드 단축키 안내</h3>
+      <div style="display: flex; flex-direction: column; gap: 0.8rem; font-size: 0.95rem; color: #cbd5e1;">
+        <div style="display: flex; justify-content: space-between;"><span class="key-badge">&rarr;</span> / <span class="key-badge">Space</span> <span>다음 슬라이드</span></div>
+        <div style="display: flex; justify-content: space-between;"><span class="key-badge">&larr;</span> <span>이전 슬라이드</span></div>
+        <div style="display: flex; justify-content: space-between;"><span class="key-badge">F</span> <span>전체화면 전환</span></div>
+        <div style="display: flex; justify-content: space-between;"><span class="key-badge">Home</span> / <span class="key-badge">End</span> <span>처음 / 마지막 슬라이드</span></div>
+      </div>
+      <button style="margin-top: 1.5rem; width: 100%; padding: 0.6rem; border-radius: 8px; background: var(--g-blue); border: none; color: #fff; font-weight: 700; cursor: pointer;" onclick="toggleHelpModal()">닫기</button>
+    </div>
+  </div>
+
+  <!-- Presentation Script (Anime.js + Interactive Logic) -->
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 7;
+    const slides = document.querySelectorAll('.slide');
+    const indicator = document.getElementById('slide-indicator');
+    const progressFill = document.getElementById('progress-fill');
+
+    function updateSlide(index) {
+      if (index < 1) index = 1;
+      if (index > totalSlides) index = totalSlides;
+      currentSlide = index;
+
+      slides.forEach((s, idx) => {
+        if (idx + 1 === currentSlide) {
+          s.classList.add('active');
+          triggerSlideAnimation(currentSlide, s);
+        } else {
+          s.classList.remove('active');
+        }
+      });
+
+      indicator.innerText = `${String(currentSlide).padStart(2, '0')} / ${String(totalSlides).padStart(2, '0')}`;
+      progressFill.style.width = `${((currentSlide - 1) / (totalSlides - 1)) * 100}%`;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) updateSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) updateSlide(currentSlide - 1);
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    function toggleHelpModal() {
+      const modal = document.getElementById('help-modal');
+      modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      } else if (e.key === 'Home') {
+        updateSlide(1);
+      } else if (e.key === 'End') {
+        updateSlide(totalSlides);
+      } else if (e.key === '?') {
+        toggleHelpModal();
+      }
+    });
+
+    // Touch swipe support
+    let touchStartX = 0;
+    window.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
+    window.addEventListener('touchend', e => {
+      let touchEndX = e.changedTouches[0].screenX;
+      if (touchStartX - touchEndX > 50) nextSlide();
+      if (touchEndX - touchStartX > 50) prevSlide();
+    });
+
+    // Anime.js trigger animations per slide
+    function triggerSlideAnimation(slideNum, slideEl) {
+      // 1. Kinetic numbers on Slide 1
+      if (slideNum === 1) {
+        const counters = slideEl.querySelectorAll('.stat-number');
+        counters.forEach(counter => {
+          const target = parseInt(counter.getAttribute('data-target'), 10);
+          anime({
+            targets: counter,
+            innerHTML: [0, target],
+            round: 1,
+            easing: 'easeOutExpo',
+            duration: 1800
+          });
+        });
+      }
+
+      // 2. Staggered card entrance on Slide 2 & 4
+      if (slideNum === 2 || slideNum === 4 || slideNum === 5) {
+        anime({
+          targets: slideEl.querySelectorAll('.glass-card, .chart-box'),
+          opacity: [0, 1],
+          translateY: [30, 0],
+          delay: anime.stagger(120, {start: 100}),
+          easing: 'easeOutCubic',
+          duration: 700
+        });
+      }
+
+      // 3. Manim SVG stroke drawing on Slide 6
+      if (slideNum === 6) {
+        const path = document.getElementById('manim-path-1');
+        if (path) {
+          path.style.strokeDashoffset = '1000';
+          anime({
+            targets: path,
+            strokeDashoffset: [1000, 0],
+            easing: 'easeInOutSine',
+            duration: 2200
+          });
+        }
+      }
+    }
+
+    // Google Flow Node Selection Interactive Logic
+    const flowLogs = {
+      agent: `[Step 1: Agent Intent]\n&gt; Context: Claude Code / Cursor Agent detects Korean locale request.\n&gt; Prompt: "네이버 경제 뉴스 상위 5건 분석 후 코스피 영향 보고서 작성해줘"\n&gt; Tool Selection: @nomadamas/k-skill router invoked.`,
+      router: `[Step 2: K-Skill CLI Router]\n&gt; Command: npx @nomadamas/k-skill naver-news-search --category="economy" --limit=5\n&gt; Adapter Check: Standard JSON input validated against JSON Schema.\n&gt; Routing latency: 12ms.`,
+      cluster: `[Step 3: Cluster Execution]\n&gt; Target: Naver News REST Endpoint & HTML DOM parser.\n&gt; Clean DOM Extraction: Skip ad banners, paywalls, script trackers.\n&gt; Extracted items: 5 articles (title, body, press, publish_time).`,
+      output: `[Step 4: Output Synthesis]\n&gt; Output Format: Verified Normalized JSON.\n&gt; Token Reduction: 84% tokens saved compared to raw HTML crawl.\n&gt; Agent Reasoning Context Successfully Injected.`
+    };
+
+    function selectFlowNode(type) {
+      document.querySelectorAll('.flow-node').forEach(node => node.classList.remove('active-node'));
+      event.currentTarget.classList.add('active-node');
+      const terminal = document.getElementById('flow-terminal-content');
+      terminal.innerHTML = flowLogs[type].replace(/\\n/g, '<br>');
+      anime({
+        targets: terminal,
+        opacity: [0.3, 1],
+        easing: 'easeOutQuad',
+        duration: 300
+      });
+    }
+
+    // Canvas Background Particles (Manim/Neural vibe)
+    const canvas = document.getElementById('particle-canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height, particles = [];
+
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.vx = (Math.random() - 0.5) * 0.4;
+        this.vy = (Math.random() - 0.5) * 0.4;
+        this.radius = Math.random() * 1.5 + 0.5;
+        this.alpha = Math.random() * 0.5 + 0.1;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < 0) this.x = width;
+        if (this.x > width) this.x = 0;
+        if (this.y < 0) this.y = height;
+        if (this.y > height) this.y = 0;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(56, 189, 248, ${this.alpha})`;
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < 45; i++) particles.push(new Particle());
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, width, height);
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+        particles[i].draw();
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(56, 189, 248, ${0.1 * (1 - dist / 100)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    // Initial Trigger
+    updateSlide(1);
+  </script>
+</body>
+</html>
